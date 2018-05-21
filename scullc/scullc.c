@@ -55,7 +55,7 @@ MODULE_AUTHOR("Alessandro Rubini, Jonathan Corbet, Vigith Maurice");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct scull_dev *scull_devices;	/* allocated in scull_init_module */
-
+struct kmem_cache *scull_cache;		
 
 /*
  * Empty out the scull device; must be called with the device
@@ -70,7 +70,8 @@ int scull_trim(struct scull_dev *dev)
 	for (dptr = dev->data; dptr; dptr = next) { /* all the list items */
 		if (dptr->data) {
 			for (i = 0; i < qset; i++)
-				kfree(dptr->data[i]);
+			if (dptr->data[i])
+				kmem_cache_free(scull_cache,dptr->data[i]);
 			kfree(dptr->data);
 			dptr->data = NULL;
 		}
@@ -217,9 +218,10 @@ ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
 		memset(dptr->data, 0, qset * sizeof(char *));
 	}
 	if (!dptr->data[s_pos]) {
-		dptr->data[s_pos] = kmalloc(quantum, GFP_KERNEL);
+		dptr->data[s_pos] = kmem_cache_alloc(scull_cache, GFP_KERNEL);
 		if (!dptr->data[s_pos])
 			goto out;
+		memset(dptr->data[s_pos],0,scull_quantum);
 	}
 	/* write only up to the end of this quantum */
 	if (count > quantum - q_pos)
@@ -309,6 +311,10 @@ void scull_cleanup_module(void)
 	/* cleanup_module is never called if registering failed */
 	unregister_chrdev_region(devno, scull_nr_devs);
 
+	/* release the cache for our quanta */
+	if (scull_cache)
+		kmem_cache_destroy(scull_cache);
+
 }
 
 
@@ -349,6 +355,13 @@ int scull_init_module(void)
 	if (result < 0) {
 		printk(KERN_WARNING "scullc: can't get major %d\n", scull_major);
 		return result;
+	}
+
+	/* create the cache for our quanta */
+	scull_cache = kmem_cache_create("scullc",scull_quantum,0,SLAB_HWCACHE_ALIGN,NULL); /* no ctor/dtor */
+	if (!scull_cache) {
+		result = -ENOMEM;
+		goto fail;
 	}
 
         /* 
