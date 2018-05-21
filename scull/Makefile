@@ -1,30 +1,11 @@
-ifneq ($(KERNELRELEASE),)
-# call from kernel build system
-
-scull-objs := main.o
-
-obj-m	:= scull.o
-
-else
-
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-PWD       := $(shell pwd)
+obj-m := scull.o
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
 
 modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) 
-
-endif
-
-
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions *.order *.symvers
+	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c *.order *.symvers .tmp_versions
 
-depend .depend dep:
-	$(CC) $(EXTRA_CFLAGS) -M *.c > .depend
-
-
-ifeq (.depend,$(wildcard .depend))
-include .depend
-endif
-
+.PHONY: modules clean
