@@ -21,13 +21,10 @@ major=$(awk "\$2==\"$module\" {print \$1}" /proc/devices)
 # Remove stale nodes and replace them, then give gid and perms
 # Usually the script is shorter, it's scull that has several devices in it.
 
-rm -f /dev/${device}[0-3]
-mknod /dev/${device}0 c $major 0
-mknod /dev/${device}1 c $major 1
-mknod /dev/${device}2 c $major 2
-mknod /dev/${device}3 c $major 3
-chgrp $group /dev/${device}[0-3] 
-chmod $mode  /dev/${device}[0-3]
+rm -f /dev/${device}
+mknod /dev/${device} c $major 0
+chgrp $group /dev/${device} 
+chmod $mode  /dev/${device}
 
 
 

@@ -8,5 +8,5 @@ device="scullq"
 
 # Remove stale nodes
 
-rm -f /dev/${device}[0-3] 
+rm -f /dev/${device}0 
 
